@@ -1,13 +1,14 @@
 ---
 name: sync-db
-description: Multi-device SQLite sync via GitHub. schema.sql + table.jsonl canonical format. Two layers: Data (.devices/) for read/write business logic DBs, Chat Memory (.memories/) for mined agent session fragments. CLI `sc` commands for export/import/memory-extract/memory-ingest/push/pull. 「sync-db」「SQLiteを同期」「dbを同期」「canon化」「デバイス同期」「scコマンド」などで発動。GitHub経由、.dbファイルはコミットしない。
+description: Multi-device SQLite sync toolkit. CLI `sc` commands for export/import/memory-extract/memory-ingest/push/pull. Data lives in SC_DATA_ROOT (private repo). 「sync-db」「SQLiteを同期」「dbを同期」「canon化」「デバイス同期」「scコマンド」などで発動。GitHub経由、.dbファイルはコミットしない。
 ---
 
-# sync-db — Multi-device SQLite Synchronization
+# sync-db — Multi-device SQLite Sync Toolkit
 
-SQLite を **GitHub 経由で複数デバイス間に同期**する。`.db` バイナリはコミットせず、**canonical text format** (`schema.sql` + `table.jsonl`) を正典とする。
+**Toolkit only (no data)**. SQLite を **GitHub 経由で複数デバイス間に同期**するための CLI スクリプト群。`.db` バイナリはコミットせず、**canonical text format** (`schema.sql` + `table.jsonl`) を正典とする。
 
-- リポジトリ実体: `/home/bons/repos/sync-db`
+- リポジトリ実体: `/home/bons/repos/sync-db`（scripts + CLI のみ）
+- データ置き場: `SC_DATA_ROOT` で指定（例: `~/repos/ds-dashboard/sync-data`）
 - CLI: `bin/sc` (bash wrapper) → `scripts/` 以下の Python スクリプトを呼ぶ
 - 前提: Python 3, sqlite3, git, gh CLI
 
