@@ -8,7 +8,7 @@ description: Multi-device SQLite sync toolkit. CLI `sdb` commands for export/imp
 **Toolkit only (no data)**. SQLite を **GitHub 経由で複数デバイス間に同期**するための CLI スクリプト群。`.db` バイナリはコミットせず、**canonical text format** (`schema.sql` + `table.jsonl`) を正典とする。
 
 - リポジトリ実体: `/home/bons/repos/sync-db`（scripts + CLI のみ）
-- データ置き場: `SC_DATA_ROOT` で指定（例: `~/repos/kankyou-dashboard/sync-data`）
+- データ置き場: `SC_DATA_ROOT` で指定（例: `~/repos/kankyou-hub/sync-data`）
 - CLI: `bin/sc` (bash wrapper) → `scripts/` 以下の Python スクリプトを呼ぶ
 - 前提: Python 3, sqlite3, git, gh CLI
 

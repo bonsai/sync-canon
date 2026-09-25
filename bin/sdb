@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# sync-db CLI — toolkit only. Data lives in SC_DATA_ROOT (e.g. ds-dashboard/sync-data)
+# sync-db CLI — toolkit only. Data lives in SC_DATA_ROOT (e.g. kankyou-hub/sync-data)
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEVICE="${SC_DEVICE:-wsl}"
 ENV_ID="${SC_ENV_ID:-$DEVICE}"

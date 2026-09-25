@@ -2,7 +2,7 @@
 *.sqlite3
 .DS_Store
 
-# sync-db is toolkit only — data lives in private data repo (e.g. kankyou-dashboard/sync-data)
+# sync-db is toolkit only — data lives in private data repo (e.g. kankyou-hub/sync-data)
 .devices/
 .memories/
 data/
