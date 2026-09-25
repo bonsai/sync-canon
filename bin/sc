@@ -26,10 +26,6 @@ Environment ($DATA_ROOT/.env/)
   sc env capture [env_id]                snapshot environment
   sc env diff <env1> <env2>              compare environments
 
-Sage Archetype
-  sc sage speak [instance]               speak insights (hiroyuki,socrates)
-  sc sage list                           list available instances
-
 Sync
   sc push [device]                       git commit + push data dir
   sc pull                                git pull origin main
@@ -42,7 +38,6 @@ Environment:
   SC_DEVICE=wsl          target device label
   SC_ENV_ID=pc1-wsl      environment identifier
   SC_DATA_ROOT=path      where .devices/ and .memories/ live
-  DS_INSIGHTS=path       ds-insighter output directory
 EOF
 }
 
@@ -92,23 +87,6 @@ _cmd_env_diff() {
   local env2="${2:-}"
   [ -z "$env1" ] && { echo "Usage: sc env diff <env1> <env2>"; exit 1; }
   python3 "$ROOT/scripts/env_capture.py" diff "$env1" "$env2" --data-root "$DATA_ROOT"
-}
-
-_cmd_sage_speak() {
-  local instance="${1:-hiroyuki}"
-  local ds_input="${DS_INSIGHTS:-$DATA_ROOT/../ds-insighter/output}"
-  python3 "$ROOT/scripts/sage_speak.py" --instance "$instance" --input "$ds_input"
-}
-
-_cmd_sage_list() {
-  echo "=== Sage Instances ==="
-  for f in "$ROOT"/archetypes/sage/instances/*.json; do
-    local id=$(basename "$f" .json)
-    local name=$(python3 -c "import json; print(json.load(open('$f'))['name'])" 2>/dev/null || echo "?")
-    echo "  $id — $name"
-  done
-  echo ""
-  echo "Usage: sc sage speak <instance_id>"
 }
 
 _cmd_push() {
@@ -185,13 +163,6 @@ case "$CMD" in
                   capture|c)  _cmd_env_capture "$@" ;;
                   diff|d)     _cmd_env_diff "$@" ;;
                   *)           echo "Usage: sc env capture|diff"; exit 1 ;;
-                esac
-                ;;
-  sage)        SUB="${1:-help}"; shift || true
-                case "$SUB" in
-                  speak|s)    _cmd_sage_speak "$@" ;;
-                  list|ls)    _cmd_sage_list ;;
-                  *)           echo "Usage: sc sage speak|list"; exit 1 ;;
                 esac
                 ;;
   push)        _cmd_push "$@" ;;

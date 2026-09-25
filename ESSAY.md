@@ -177,7 +177,7 @@ find ~ -name ".skills" -o -name ".config/opencode"
 
 ### 6.3 暗黙の合意：どの DB を同期するか
 
-全 SQLite DB を同期すべきではない。`reposync/repos.db` は GH 上の repo リストが truth なので不要。`ds-dashboard/dashboard.db` は再生成可能なので `.gitignore` で十分。
+全 SQLite DB を同期すべきではない。`reposync/repos.db` は GH 上の repo リストが truth なので不要。`kankyou-dashboard/dashboard.db` は再生成可能なので `.gitignore` で十分。
 
 **同期対象は「他のデバイスで編集したい可能性がある DB」に限定すべきである。**
 

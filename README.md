@@ -2,7 +2,7 @@
 
 **Toolkit only** — CLI scripts for multi-device SQLite sync. No data included.
 
-Data lives in a private repo (e.g. `ds-dashboard/sync-data/`), set via `SC_DATA_ROOT`.
+Data lives in a private repo (e.g. `kankyou-dashboard/sync-data/`), set via `SC_DATA_ROOT`.
 
 ## Quick Start
 
@@ -13,10 +13,10 @@ ln -s ~/repos/sync-db/bin/sc ~/.local/bin/sc
 # Set environment identity
 export SC_DEVICE=wsl           # device label (wsl, win, docker, cloud...)
 export SC_ENV_ID=pc1-wsl       # environment ID (pc1-wsl, pc2-wsl, pc1-win, etc)
-export SC_DATA_ROOT=~/repos/ds-dashboard/sync-data
+export SC_DATA_ROOT=~/repos/kankyou-dashboard/sync-data
 
 # Export DBs
-cd ~/repos/ds-dashboard
+cd ~/repos/kankyou-dashboard
 sc export ~/repos/talk-db/db/talk.db $SC_ENV_ID talk-db
 sc export ~/repos/.agents/data/triage.db $SC_ENV_ID .agents
 
@@ -78,7 +78,7 @@ sync-data/
                           │ SC_DATA_ROOT env var
                           ▼
 ┌─────────────────────────────────────────────────────────┐
-│  ds-dashboard/sync-data/ (private)                      │
+│  kankyou-dashboard/sync-data/ (private)                      │
 │  ├── .devices/<env>/       ← DB exports                 │
 │  ├── .memories/<env>/      ← Chat memories              │
 │  └── .env/<env>/           ← Environment diffs          │
@@ -87,7 +87,7 @@ sync-data/
                           │ ds ingest
                           ▼
 ┌─────────────────────────────────────────────────────────┐
-│  ds-dashboard engine                                    │
+│  kankyou-dashboard engine                                    │
 │  Receives → Analyzes → Discovers → Renders              │
 │  dashboard.db + dashboard.html + insights.md            │
 └─────────────────────────────────────────────────────────┘
