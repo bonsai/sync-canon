@@ -22,7 +22,15 @@ Chat Memory Layer ($DATA_ROOT/.memories/)
   sc memory extract [device]             mine agent sessions
   sc memory ingest [device]              ingest to talk-db format
 
-Sync (run in SC_DATA_ROOT repo)
+Environment ($DATA_ROOT/.env/)
+  sc env capture [env_id]                snapshot environment
+  sc env diff <env1> <env2>              compare environments
+
+Sage Archetype
+  sc sage speak [instance]               speak insights (hiroyuki,socrates)
+  sc sage list                           list available instances
+
+Sync
   sc push [device]                       git commit + push data dir
   sc pull                                git pull origin main
 
@@ -32,14 +40,9 @@ Inspect
 
 Environment:
   SC_DEVICE=wsl          target device label
+  SC_ENV_ID=pc1-wsl      environment identifier
   SC_DATA_ROOT=path      where .devices/ and .memories/ live
-                           default: $ROOT (this repo)
-                           typical: ~/repos/ds-dashboard/sync-data
-
-Examples:
-  SC_DATA_ROOT=~/repos/ds-dashboard/sync-data sc export ~/repos/talk-db/db/talk.db
-  SC_DATA_ROOT=~/repos/ds-dashboard/sync-data sc memory extract
-  cd ~/repos/ds-dashboard && SC_DATA_ROOT=./sync-data sc push
+  DS_INSIGHTS=path       ds-insighter output directory
 EOF
 }
 
@@ -78,11 +81,42 @@ _cmd_memory_ingest() {
   python3 "$ROOT/scripts/ingest_memories.py" "$dev" --memories-root "$DATA_ROOT/.memories" --out-dir "$DATA_ROOT/data/memory_ingest"
 }
 
+_cmd_env_capture() {
+  local env="${1:-$SC_ENV_ID}"
+  [ -z "$env" ] && { echo "Usage: sc env capture [env_id] (or set SC_ENV_ID)"; exit 1; }
+  python3 "$ROOT/scripts/env_capture.py" capture "$env" --out-root "$DATA_ROOT"
+}
+
+_cmd_env_diff() {
+  local env1="${1:-}"
+  local env2="${2:-}"
+  [ -z "$env1" ] && { echo "Usage: sc env diff <env1> <env2>"; exit 1; }
+  python3 "$ROOT/scripts/env_capture.py" diff "$env1" "$env2" --data-root "$DATA_ROOT"
+}
+
+_cmd_sage_speak() {
+  local instance="${1:-hiroyuki}"
+  local ds_input="${DS_INSIGHTS:-$DATA_ROOT/../ds-insighter/output}"
+  python3 "$ROOT/scripts/sage_speak.py" --instance "$instance" --input "$ds_input"
+}
+
+_cmd_sage_list() {
+  echo "=== Sage Instances ==="
+  for f in "$ROOT"/archetypes/sage/instances/*.json; do
+    local id=$(basename "$f" .json)
+    local name=$(python3 -c "import json; print(json.load(open('$f'))['name'])" 2>/dev/null || echo "?")
+    echo "  $id — $name"
+  done
+  echo ""
+  echo "Usage: sc sage speak <instance_id>"
+}
+
 _cmd_push() {
   local dev="${1:-$DEVICE}"
   cd "$DATA_ROOT"
   git add ".devices/$dev/" 2>/dev/null || true
   git add ".memories/$dev/" 2>/dev/null || true
+  git add ".env/" 2>/dev/null || true
   git add "data/" 2>/dev/null || true
   git commit -m "sync($dev): $(date +%Y%m%d-%H%M)" || true
   git push origin main
@@ -114,6 +148,12 @@ _cmd_status() {
   else
     echo "[$DEVICE] .memories/ │ (none)"
   fi
+
+  if [ -d "$DATA_ROOT/.env/$DEVICE" ] || [ -d "$DATA_ROOT/.env/$SC_ENV_ID" ]; then
+    echo "[$DEVICE] .env/      │ captured"
+  else
+    echo "[$DEVICE] .env/      │ (none)"
+  fi
 }
 
 _cmd_list() {
@@ -140,6 +180,20 @@ case "$CMD" in
   import)      _cmd_import "$@" ;;
   memory-extract|mem-extract|me) _cmd_memory_extract "$@" ;;
   memory-ingest|mem-ingest|mi)   _cmd_memory_ingest "$@" ;;
+  env)         SUB="${1:-help}"; shift || true
+                case "$SUB" in
+                  capture|c)  _cmd_env_capture "$@" ;;
+                  diff|d)     _cmd_env_diff "$@" ;;
+                  *)           echo "Usage: sc env capture|diff"; exit 1 ;;
+                esac
+                ;;
+  sage)        SUB="${1:-help}"; shift || true
+                case "$SUB" in
+                  speak|s)    _cmd_sage_speak "$@" ;;
+                  list|ls)    _cmd_sage_list ;;
+                  *)           echo "Usage: sc sage speak|list"; exit 1 ;;
+                esac
+                ;;
   push)        _cmd_push "$@" ;;
   pull)        _cmd_pull ;;
   status|st)   _cmd_status ;;
