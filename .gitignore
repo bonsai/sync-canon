@@ -1,3 +1,8 @@
 *.db
 *.sqlite3
 .DS_Store
+
+# sync-db is toolkit only — data lives in private data repo (e.g. ds-dashboard/sync-data)
+.devices/
+.memories/
+data/

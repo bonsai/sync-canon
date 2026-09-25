@@ -1,32 +1,45 @@
 #!/bin/bash
 set -euo pipefail
 
+# sync-db CLI — toolkit only. Data lives in SC_DATA_ROOT (e.g. ds-dashboard/sync-data)
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEVICE="${SC_DEVICE:-wsl}"
+DATA_ROOT="${SC_DATA_ROOT:-$ROOT}"
 
 _usage() {
   cat <<EOF
-sc — sync-canon unified CLI
+sc — sync-db unified CLI (toolkit mode)
+
+Data is NOT stored in this repo. Set SC_DATA_ROOT to your private data repo.
 
 Usage: sc <command> [args]
 
-Data Layer (.devices/)
+Data Layer ($DATA_ROOT/.devices/)
   sc export <db-path> [device] [name]    DB → canonical
   sc import <name> [device] [db-path]    canonical → DB
 
-Chat Memory Layer (.memories/)
+Chat Memory Layer ($DATA_ROOT/.memories/)
   sc memory extract [device]             mine agent sessions
   sc memory ingest [device]              ingest to talk-db format
 
-Sync
-  sc push [device]                       git commit + push
+Sync (run in SC_DATA_ROOT repo)
+  sc push [device]                       git commit + push data dir
   sc pull                                git pull origin main
 
 Inspect
   sc status                              show device/layer state
   sc list [device]                       list canonical exports
 
-Environment: SC_DEVICE=home-pc  (default: wsl)
+Environment:
+  SC_DEVICE=wsl          target device label
+  SC_DATA_ROOT=path      where .devices/ and .memories/ live
+                           default: $ROOT (this repo)
+                           typical: ~/repos/ds-dashboard/sync-data
+
+Examples:
+  SC_DATA_ROOT=~/repos/ds-dashboard/sync-data sc export ~/repos/talk-db/db/talk.db
+  SC_DATA_ROOT=~/repos/ds-dashboard/sync-data sc memory extract
+  cd ~/repos/ds-dashboard && SC_DATA_ROOT=./sync-data sc push
 EOF
 }
 
@@ -36,7 +49,7 @@ _cmd_export() {
   local name="${3:-$(basename "$db_path" .db)}"
   [ -z "$db_path" ] && { echo "Usage: sc export <db-path> [device] [name]"; exit 1; }
   [ ! -f "$db_path" ] && { echo "DB not found: $db_path"; exit 1; }
-  python3 "$ROOT/scripts/export.py" "$db_path" "$dev" "$name"
+  python3 "$ROOT/scripts/export.py" "$db_path" "$dev" "$name" --out-root "$DATA_ROOT"
 }
 
 _cmd_import() {
@@ -45,7 +58,6 @@ _cmd_import() {
   local db_path="${3:-}"
   [ -z "$name" ] && { echo "Usage: sc import <name> [device] [db-path]"; exit 1; }
   if [ -z "$db_path" ]; then
-    # auto-resolve common paths
     case "$name" in
       talk-db) db_path="$HOME/repos/talk-db/db/talk.db" ;;
       wf-errors) db_path="$HOME/repos/wf-errors/wferr.db" ;;
@@ -53,78 +65,69 @@ _cmd_import() {
       *) echo "Unknown DB name: $name"; exit 1 ;;
     esac
   fi
-  python3 "$ROOT/scripts/import.py" "$dev" "$name" "$db_path"
+  python3 "$ROOT/scripts/import.py" "$dev" "$name" "$db_path" --in-root "$DATA_ROOT"
 }
 
 _cmd_memory_extract() {
   local dev="${1:-$DEVICE}"
-  python3 "$ROOT/scripts/extract_memories.py" "$dev"
+  python3 "$ROOT/scripts/extract_memories.py" "$dev" --out-root "$DATA_ROOT/.memories"
 }
 
 _cmd_memory_ingest() {
   local dev="${1:-$DEVICE}"
-  python3 "$ROOT/scripts/ingest_memories.py" "$dev"
+  python3 "$ROOT/scripts/ingest_memories.py" "$dev" --memories-root "$DATA_ROOT/.memories" --out-dir "$DATA_ROOT/data/memory_ingest"
 }
 
 _cmd_push() {
   local dev="${1:-$DEVICE}"
-  cd "$ROOT"
+  cd "$DATA_ROOT"
   git add ".devices/$dev/" 2>/dev/null || true
   git add ".memories/$dev/" 2>/dev/null || true
+  git add "data/" 2>/dev/null || true
   git commit -m "sync($dev): $(date +%Y%m%d-%H%M)" || true
   git push origin main
 }
 
 _cmd_pull() {
-  cd "$ROOT"
+  cd "$DATA_ROOT"
   git pull origin main
 }
 
 _cmd_status() {
-  local dev devs=("$DEVICE")
-  if [ -d "$ROOT/.devices" ]; then
-    for d in "$ROOT"/.devices/*/; do
-      devs+=("$(basename "$d")")
-    done
-  fi
-  devs=("$(printf '%s\n' "${devs[@]}" | sort -u)")
-
-  echo "=== sync-canon status ==="
-  echo "Root:  $ROOT"
-  echo "HEAD:  $(cd "$ROOT" && git rev-parse --short HEAD 2>/dev/null || echo 'n/a')"
+  echo "=== sync-db status ==="
+  echo "Toolkit: $ROOT"
+  echo "Data:    $DATA_ROOT"
+  echo "Device:  $DEVICE"
+  echo "Git:     $(cd "$DATA_ROOT" 2>/dev/null && git rev-parse --short HEAD 2>/dev/null || echo 'n/a')"
   echo ""
 
-  for dev in "${devs[@]}"; do
-    [ -z "$dev" ] && continue
-    echo "[$dev]"
-    if [ -d "$ROOT/.devices/$dev" ]; then
-      local tables=$(find "$ROOT/.devices/$dev" -name "schema.sql" | wc -l)
-      echo "  .devices/  │ $tables DB(s) exported"
-    else
-      echo "  .devices/  │ (none)"
-    fi
-    if [ -d "$ROOT/.memories/$dev" ]; then
-      local frags=$(find "$ROOT/.memories/$dev" -name "*.jsonl" -exec cat {} + 2>/dev/null | wc -l)
-      echo "  .memories/ │ $frags fragment(s)"
-    else
-      echo "  .memories/ │ (none)"
-    fi
-    echo ""
-  done
+  if [ -d "$DATA_ROOT/.devices/$DEVICE" ]; then
+    local tables=$(find "$DATA_ROOT/.devices/$DEVICE" -name "schema.sql" | wc -l)
+    echo "[$DEVICE] .devices/  │ $tables DB(s)"
+  else
+    echo "[$DEVICE] .devices/  │ (none)"
+  fi
+
+  if [ -d "$DATA_ROOT/.memories/$DEVICE" ]; then
+    local frags=$(find "$DATA_ROOT/.memories/$DEVICE" -name "*.jsonl" -exec cat {} + 2>/dev/null | wc -l)
+    echo "[$DEVICE] .memories/ │ $frags fragment(s)"
+  else
+    echo "[$DEVICE] .memories/ │ (none)"
+  fi
 }
 
 _cmd_list() {
   local dev="${1:-$DEVICE}"
-  echo "=== .devices/$dev ==="
-  find "$ROOT/.devices/$dev" -maxdepth 2 -name "schema.sql" -print | while read -r f; do
+  echo "=== $DATA_ROOT/.devices/$dev ==="
+  find "$DATA_ROOT/.devices/$dev" -maxdepth 2 -name "schema.sql" -print 2>/dev/null | while read -r f; do
     local dir=$(dirname "$f")
     local name=$(basename "$dir")
     local rows=$(find "$dir" -name "*.jsonl" -exec cat {} + 2>/dev/null | wc -l)
     echo "  $name/  rows: $rows"
   done
   echo ""
-  echo "=== .memories/$dev ==="
-  find "$ROOT/.memories/$dev" -name "*.jsonl" -print | while read -r f; do
+  echo "=== $DATA_ROOT/.memories/$dev ==="
+  find "$DATA_ROOT/.memories/$dev" -name "*.jsonl" -print 2>/dev/null | while read -r f; do
     local frags=$(wc -l < "$f")
     echo "  $(basename "$f")  fragments: $frags"
   done
