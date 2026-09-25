@@ -4,6 +4,7 @@ set -euo pipefail
 # sync-db CLI — toolkit only. Data lives in SC_DATA_ROOT (e.g. ds-dashboard/sync-data)
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEVICE="${SC_DEVICE:-wsl}"
+ENV_ID="${SC_ENV_ID:-$DEVICE}"
 DATA_ROOT="${SC_DATA_ROOT:-$ROOT}"
 
 _usage() {
@@ -77,7 +78,7 @@ _cmd_memory_ingest() {
 }
 
 _cmd_env_capture() {
-  local env="${1:-$SC_ENV_ID}"
+  local env="${1:-$ENV_ID}"
   [ -z "$env" ] && { echo "Usage: sc env capture [env_id] (or set SC_ENV_ID)"; exit 1; }
   python3 "$ROOT/scripts/env_capture.py" capture "$env" --out-root "$DATA_ROOT"
 }
@@ -127,7 +128,7 @@ _cmd_status() {
     echo "[$DEVICE] .memories/ │ (none)"
   fi
 
-  if [ -d "$DATA_ROOT/.env/$DEVICE" ] || [ -d "$DATA_ROOT/.env/$SC_ENV_ID" ]; then
+  if [ -d "$DATA_ROOT/.env/$DEVICE" ] || [ -d "$DATA_ROOT/.env/$ENV_ID" ]; then
     echo "[$DEVICE] .env/      │ captured"
   else
     echo "[$DEVICE] .env/      │ (none)"
