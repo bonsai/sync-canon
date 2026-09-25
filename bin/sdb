@@ -9,31 +9,31 @@ DATA_ROOT="${SC_DATA_ROOT:-$ROOT}"
 
 _usage() {
   cat <<EOF
-sc — sync-db unified CLI (toolkit mode)
+sdb — sync-db unified CLI (toolkit mode)
 
 Data is NOT stored in this repo. Set SC_DATA_ROOT to your private data repo.
 
-Usage: sc <command> [args]
+Usage: sdb <command> [args]
 
 Data Layer ($DATA_ROOT/.devices/)
-  sc export <db-path> [device] [name]    DB → canonical
-  sc import <name> [device] [db-path]    canonical → DB
+  sdb export <db-path> [device] [name]    DB → canonical
+  sdb import <name> [device] [db-path]    canonical → DB
 
 Chat Memory Layer ($DATA_ROOT/.memories/)
-  sc memory extract [device]             mine agent sessions
-  sc memory ingest [device]              ingest to talk-db format
+  sdb memory extract [device]             mine agent sessions
+  sdb memory ingest [device]              ingest to talk-db format
 
 Environment ($DATA_ROOT/.env/)
-  sc env capture [env_id]                snapshot environment
-  sc env diff <env1> <env2>              compare environments
+  sdb env capture [env_id]                snapshot environment
+  sdb env diff <env1> <env2>              compare environments
 
 Sync
-  sc push [device]                       git commit + push data dir
-  sc pull                                git pull origin main
+  sdb push [device]                       git commit + push data dir
+  sdb pull                                git pull origin main
 
 Inspect
-  sc status                              show device/layer state
-  sc list [device]                       list canonical exports
+  sdb status                              show device/layer state
+  sdb list [device]                       list canonical exports
 
 Environment:
   SC_DEVICE=wsl          target device label
@@ -46,7 +46,7 @@ _cmd_export() {
   local db_path="${1:-}"
   local dev="${2:-$DEVICE}"
   local name="${3:-$(basename "$db_path" .db)}"
-  [ -z "$db_path" ] && { echo "Usage: sc export <db-path> [device] [name]"; exit 1; }
+  [ -z "$db_path" ] && { echo "Usage: sdb export <db-path> [device] [name]"; exit 1; }
   [ ! -f "$db_path" ] && { echo "DB not found: $db_path"; exit 1; }
   python3 "$ROOT/scripts/export.py" "$db_path" "$dev" "$name" --out-root "$DATA_ROOT"
 }
@@ -55,7 +55,7 @@ _cmd_import() {
   local name="${1:-}"
   local dev="${2:-$DEVICE}"
   local db_path="${3:-}"
-  [ -z "$name" ] && { echo "Usage: sc import <name> [device] [db-path]"; exit 1; }
+  [ -z "$name" ] && { echo "Usage: sdb import <name> [device] [db-path]"; exit 1; }
   if [ -z "$db_path" ]; then
     case "$name" in
       talk-db) db_path="$HOME/repos/talk-db/db/talk.db" ;;
@@ -79,14 +79,14 @@ _cmd_memory_ingest() {
 
 _cmd_env_capture() {
   local env="${1:-$ENV_ID}"
-  [ -z "$env" ] && { echo "Usage: sc env capture [env_id] (or set SC_ENV_ID)"; exit 1; }
+  [ -z "$env" ] && { echo "Usage: sdb env capture [env_id] (or set SC_ENV_ID)"; exit 1; }
   python3 "$ROOT/scripts/env_capture.py" capture "$env" --out-root "$DATA_ROOT"
 }
 
 _cmd_env_diff() {
   local env1="${1:-}"
   local env2="${2:-}"
-  [ -z "$env1" ] && { echo "Usage: sc env diff <env1> <env2>"; exit 1; }
+  [ -z "$env1" ] && { echo "Usage: sdb env diff <env1> <env2>"; exit 1; }
   python3 "$ROOT/scripts/env_capture.py" diff "$env1" "$env2" --data-root "$DATA_ROOT"
 }
 
@@ -163,7 +163,7 @@ case "$CMD" in
                 case "$SUB" in
                   capture|c)  _cmd_env_capture "$@" ;;
                   diff|d)     _cmd_env_diff "$@" ;;
-                  *)           echo "Usage: sc env capture|diff"; exit 1 ;;
+                  *)           echo "Usage: sdb env capture|diff"; exit 1 ;;
                 esac
                 ;;
   push)        _cmd_push "$@" ;;

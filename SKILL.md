@@ -1,6 +1,6 @@
 ---
 name: sync-db
-description: Multi-device SQLite sync toolkit. CLI `sc` commands for export/import/memory-extract/memory-ingest/push/pull. Data lives in SC_DATA_ROOT (private repo). 「sync-db」「SQLiteを同期」「dbを同期」「canon化」「デバイス同期」「scコマンド」などで発動。GitHub経由、.dbファイルはコミットしない。
+description: Multi-device SQLite sync toolkit. CLI `sdb` commands for export/import/memory-extract/memory-ingest/push/pull. Data lives in SC_DATA_ROOT (private repo). 「sync-db」「SQLiteを同期」「dbを同期」「canon化」「デバイス同期」「sdbコマンド」などで発動。GitHub経由、.dbファイルはコミットしない。
 ---
 
 # sync-db — Multi-device SQLite Sync Toolkit
