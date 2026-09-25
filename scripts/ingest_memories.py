@@ -53,7 +53,7 @@ def main():
                 if work_id not in work_ids:
                     works.append({
                         "id": work_id,
-                        "repo": f"sync-canon/.memories/{args.device}",
+                        "repo": f"sync-db/.memories/{args.device}",
                         "path": f"{src}/{sid}.jsonl",
                         "title": title,
                         "author": src,

@@ -1,10 +1,10 @@
-# sync-canon
+# sync-db
 
 Multi-device SQLite synchronization via GitHub. **User-created DBs only.**
 
 ## Two-Layer Architecture
 
-sync-canon manages **two distinct layers** with separate access patterns:
+sync-db manages **two distinct layers** with separate access patterns:
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -53,7 +53,7 @@ User-designed DBs. **Read/write sync** between PC1-WSL ↔ PC2-WSL via GitHub.
 - `ingest_memories.py` → `data/memory_ingest/` (talk-db compatible works + passages)
 - `ripgrep`, `jq`, or talk-db FTS5 search
 
-**Important:** Agent cache DBs themselves are **never committed** to sync-canon. Only the *mined fragments* (after heuristic filtering) become canonical.
+**Important:** Agent cache DBs themselves are **never committed** to sync-db. Only the *mined fragments* (after heuristic filtering) become canonical.
 
 ## Principle
 
@@ -67,7 +67,7 @@ User-designed DBs. **Read/write sync** between PC1-WSL ↔ PC2-WSL via GitHub.
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        GitHub Cloud                         │
-│                    bonsai/sync-canon                        │
+│                    bonsai/sync-db                        │
 │              (schema.sql + *.jsonl only)                    │
 └─────────────────────────────────────────────────────────────┘
          ↑↓ git push/pull              ↑↓ git push/pull
@@ -93,7 +93,7 @@ User-designed DBs. **Read/write sync** between PC1-WSL ↔ PC2-WSL via GitHub.
 ## Directory Structure
 
 ```
-sync-canon/
+sync-db/
 ├── .gitignore              # ignores *.db, *.sqlite3
 ├── README.md
 ├── .devices/               ← LAYER 1: Data (read/write sync)
@@ -127,7 +127,7 @@ sync-canon/
 ### Layer 1: Data Export / Import
 
 ```bash
-cd sync-canon
+cd sync-db
 
 # Export (DB → canonical)
 python scripts/export.py ~/repos/talk-db/db/talk.db wsl talk-db
@@ -147,7 +147,7 @@ git push origin main
 ### Layer 2: Chat Memory Extract / Ingest
 
 ```bash
-cd sync-canon
+cd sync-db
 
 # Extract (agent session DBs → memory fragments)
 python scripts/extract_memories.py wsl

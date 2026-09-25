@@ -1,0 +1,146 @@
+#!/bin/bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+DEVICE="${SC_DEVICE:-wsl}"
+
+_usage() {
+  cat <<EOF
+sc — sync-canon unified CLI
+
+Usage: sc <command> [args]
+
+Data Layer (.devices/)
+  sc export <db-path> [device] [name]    DB → canonical
+  sc import <name> [device] [db-path]    canonical → DB
+
+Chat Memory Layer (.memories/)
+  sc memory extract [device]             mine agent sessions
+  sc memory ingest [device]              ingest to talk-db format
+
+Sync
+  sc push [device]                       git commit + push
+  sc pull                                git pull origin main
+
+Inspect
+  sc status                              show device/layer state
+  sc list [device]                       list canonical exports
+
+Environment: SC_DEVICE=home-pc  (default: wsl)
+EOF
+}
+
+_cmd_export() {
+  local db_path="${1:-}"
+  local dev="${2:-$DEVICE}"
+  local name="${3:-$(basename "$db_path" .db)}"
+  [ -z "$db_path" ] && { echo "Usage: sc export <db-path> [device] [name]"; exit 1; }
+  [ ! -f "$db_path" ] && { echo "DB not found: $db_path"; exit 1; }
+  python3 "$ROOT/scripts/export.py" "$db_path" "$dev" "$name"
+}
+
+_cmd_import() {
+  local name="${1:-}"
+  local dev="${2:-$DEVICE}"
+  local db_path="${3:-}"
+  [ -z "$name" ] && { echo "Usage: sc import <name> [device] [db-path]"; exit 1; }
+  if [ -z "$db_path" ]; then
+    # auto-resolve common paths
+    case "$name" in
+      talk-db) db_path="$HOME/repos/talk-db/db/talk.db" ;;
+      wf-errors) db_path="$HOME/repos/wf-errors/wferr.db" ;;
+      .agents) db_path="$HOME/repos/.agents/data/triage.db" ;;
+      *) echo "Unknown DB name: $name"; exit 1 ;;
+    esac
+  fi
+  python3 "$ROOT/scripts/import.py" "$dev" "$name" "$db_path"
+}
+
+_cmd_memory_extract() {
+  local dev="${1:-$DEVICE}"
+  python3 "$ROOT/scripts/extract_memories.py" "$dev"
+}
+
+_cmd_memory_ingest() {
+  local dev="${1:-$DEVICE}"
+  python3 "$ROOT/scripts/ingest_memories.py" "$dev"
+}
+
+_cmd_push() {
+  local dev="${1:-$DEVICE}"
+  cd "$ROOT"
+  git add ".devices/$dev/" 2>/dev/null || true
+  git add ".memories/$dev/" 2>/dev/null || true
+  git commit -m "sync($dev): $(date +%Y%m%d-%H%M)" || true
+  git push origin main
+}
+
+_cmd_pull() {
+  cd "$ROOT"
+  git pull origin main
+}
+
+_cmd_status() {
+  local dev devs=("$DEVICE")
+  if [ -d "$ROOT/.devices" ]; then
+    for d in "$ROOT"/.devices/*/; do
+      devs+=("$(basename "$d")")
+    done
+  fi
+  devs=("$(printf '%s\n' "${devs[@]}" | sort -u)")
+
+  echo "=== sync-canon status ==="
+  echo "Root:  $ROOT"
+  echo "HEAD:  $(cd "$ROOT" && git rev-parse --short HEAD 2>/dev/null || echo 'n/a')"
+  echo ""
+
+  for dev in "${devs[@]}"; do
+    [ -z "$dev" ] && continue
+    echo "[$dev]"
+    if [ -d "$ROOT/.devices/$dev" ]; then
+      local tables=$(find "$ROOT/.devices/$dev" -name "schema.sql" | wc -l)
+      echo "  .devices/  │ $tables DB(s) exported"
+    else
+      echo "  .devices/  │ (none)"
+    fi
+    if [ -d "$ROOT/.memories/$dev" ]; then
+      local frags=$(find "$ROOT/.memories/$dev" -name "*.jsonl" -exec cat {} + 2>/dev/null | wc -l)
+      echo "  .memories/ │ $frags fragment(s)"
+    else
+      echo "  .memories/ │ (none)"
+    fi
+    echo ""
+  done
+}
+
+_cmd_list() {
+  local dev="${1:-$DEVICE}"
+  echo "=== .devices/$dev ==="
+  find "$ROOT/.devices/$dev" -maxdepth 2 -name "schema.sql" -print | while read -r f; do
+    local dir=$(dirname "$f")
+    local name=$(basename "$dir")
+    local rows=$(find "$dir" -name "*.jsonl" -exec cat {} + 2>/dev/null | wc -l)
+    echo "  $name/  rows: $rows"
+  done
+  echo ""
+  echo "=== .memories/$dev ==="
+  find "$ROOT/.memories/$dev" -name "*.jsonl" -print | while read -r f; do
+    local frags=$(wc -l < "$f")
+    echo "  $(basename "$f")  fragments: $frags"
+  done
+}
+
+# dispatch
+CMD="${1:-help}"; shift || true
+case "$CMD" in
+  export)      _cmd_export "$@" ;;
+  import)      _cmd_import "$@" ;;
+  memory-extract|mem-extract|me) _cmd_memory_extract "$@" ;;
+  memory-ingest|mem-ingest|mi)   _cmd_memory_ingest "$@" ;;
+  push)        _cmd_push "$@" ;;
+  pull)        _cmd_pull ;;
+  status|st)   _cmd_status ;;
+  list|ls)     _cmd_list "$@" ;;
+  help|--help|-h) _usage ;;
+  *) echo "Unknown command: $CMD"; _usage; exit 1 ;;
+esac
